@@ -39,6 +39,8 @@
 #define V4L2_SUBDEV_IR_TX_NOTIFY		_IOW('v', 1, u32)
 #define V4L2_SUBDEV_IR_TX_FIFO_SERVICE_REQ	0x00000001
 
+#define	V4L2_DEVICE_NOTIFY_EVENT		_IOW('v', 2, struct v4l2_event)
+
 struct v4l2_device;
 struct v4l2_ctrl_handler;
 struct v4l2_event_subscription;
@@ -477,6 +479,18 @@ struct v4l2_subdev_ir_ops {
 				struct v4l2_subdev_ir_parameters *params);
 };
 
+/*
+ * Used for storing subdev pad information. This structure only needs
+ * to be passed to the pad op if the 'which' field of the main argument
+ * is set to V4L2_SUBDEV_FORMAT_TRY. For V4L2_SUBDEV_FORMAT_ACTIVE it is
+ * safe to pass NULL.
+ */
+struct v4l2_subdev_pad_config {
+	struct v4l2_mbus_framefmt try_fmt;
+	struct v4l2_rect try_crop;
+	struct v4l2_rect try_compose;
+};
+
 /**
  * struct v4l2_subdev_pad_ops - v4l2-subdev pad level operations
  * @get_frame_desc: get the current low level media bus frame parameters.
@@ -506,6 +520,10 @@ struct v4l2_subdev_pad_ops {
 			     struct v4l2_subdev_selection *sel);
 	int (*get_edid)(struct v4l2_subdev *sd, struct v4l2_subdev_edid *edid);
 	int (*set_edid)(struct v4l2_subdev *sd, struct v4l2_subdev_edid *edid);
+	int (*dv_timings_cap)(struct v4l2_subdev *sd,
+			      struct v4l2_dv_timings_cap *cap);
+	int (*enum_dv_timings)(struct v4l2_subdev *sd,
+			       struct v4l2_enum_dv_timings *timings);
 #ifdef CONFIG_MEDIA_CONTROLLER
 	int (*link_validate)(struct v4l2_subdev *sd, struct media_link *link,
 			     struct v4l2_subdev_format *source_fmt,
@@ -585,6 +603,8 @@ struct v4l2_subdev {
 	void *host_priv;
 	/* subdev device node */
 	struct video_device *devnode;
+	/* pointer to the physical device, if any */
+	struct device *dev;
 };
 
 #define media_entity_to_v4l2_subdev(ent) \
@@ -673,5 +693,13 @@ void v4l2_subdev_init(struct v4l2_subdev *sd,
 
 #define v4l2_subdev_has_op(sd, o, f) \
 	((sd)->ops->o && (sd)->ops->o->f)
+
+void v4l2_subdev_notify_event(struct v4l2_subdev *sd,
+			      const struct v4l2_event *ev);
+
+int v4l2_src_change_event_subscribe(struct v4l2_fh *fh,
+				const struct v4l2_event_subscription *sub);
+int v4l2_src_change_event_subdev_subscribe(struct v4l2_subdev *sd,
+		struct v4l2_fh *fh, struct v4l2_event_subscription *sub);
 
 #endif

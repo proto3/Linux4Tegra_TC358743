@@ -1054,7 +1054,24 @@ struct v4l2_bt_timings {
    exactly the same number of half-lines. Whether half-lines can be detected
    or used depends on the hardware. */
 #define V4L2_DV_FL_HALF_LINE			(1 << 3)
+/* If set, then this is a Consumer Electronics (CE) video format. Such formats
+ * differ from other formats (commonly called IT formats) in that if RGB
+ * encoding is used then by default the RGB values use limited range (i.e.
+ * use the range 16-235) as opposed to 0-255. All formats defined in CEA-861
+ * except for the 640x480 format are CE formats. */
+#define V4L2_DV_FL_IS_CE_VIDEO			(1 << 4)
 
+
+/* A few useful defines to calculate the total blanking and frame sizes */
+#define V4L2_DV_BT_BLANKING_WIDTH(bt) \
+        ((bt)->hfrontporch + (bt)->hsync + (bt)->hbackporch)
+#define V4L2_DV_BT_FRAME_WIDTH(bt) \
+        ((bt)->width + V4L2_DV_BT_BLANKING_WIDTH(bt))
+#define V4L2_DV_BT_BLANKING_HEIGHT(bt) \
+        ((bt)->vfrontporch + (bt)->vsync + (bt)->vbackporch + \
+         (bt)->il_vfrontporch + (bt)->il_vsync + (bt)->il_vbackporch)
+#define V4L2_DV_BT_FRAME_HEIGHT(bt) \
+        ((bt)->height + V4L2_DV_BT_BLANKING_HEIGHT(bt))
 
 /** struct v4l2_dv_timings - DV timings
  * @type:	the type of the timings
@@ -1079,6 +1096,7 @@ struct v4l2_dv_timings {
  */
 struct v4l2_enum_dv_timings {
 	__u32 index;
+	__u32 pad;
 	__u32 reserved[3];
 	struct v4l2_dv_timings timings;
 };
@@ -1121,6 +1139,7 @@ struct v4l2_bt_timings_cap {
  */
 struct v4l2_dv_timings_cap {
 	__u32 type;
+	__u32 pad;
 	__u32 reserved[3];
 	union {
 		struct v4l2_bt_timings_cap bt;
@@ -1721,6 +1740,7 @@ struct v4l2_streamparm {
 #define V4L2_EVENT_EOS				2
 #define V4L2_EVENT_CTRL				3
 #define V4L2_EVENT_FRAME_SYNC			4
+#define V4L2_EVENT_SOURCE_CHANGE		5
 #define V4L2_EVENT_PRIVATE_START		0x08000000
 
 /* Payload for V4L2_EVENT_VSYNC */
@@ -1752,12 +1772,20 @@ struct v4l2_event_frame_sync {
 	__u32 frame_sequence;
 };
 
+#define V4L2_EVENT_SRC_CH_RESOLUTION		(1 << 0)
+
+struct v4l2_event_src_change {
+	__u32 changes;
+};
+
 struct v4l2_event {
 	__u32				type;
 	union {
 		struct v4l2_event_vsync		vsync;
 		struct v4l2_event_ctrl		ctrl;
 		struct v4l2_event_frame_sync	frame_sync;
+		struct v4l2_event_src_change	src_change;
+		//struct v4l2_event_motion_det	motion_det;
 		__u8				data[64];
 	} u;
 	__u32				pending;

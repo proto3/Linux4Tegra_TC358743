@@ -43,6 +43,7 @@
 #include <media/v4l2-event.h>
 #include <media/v4l2-of.h>
 #include <media/tc358743.h>
+#include <uapi/linux/media-bus-format.h>
 
 #include "tc358743_regs.h"
 
@@ -446,7 +447,7 @@ static void tc358743_erase_bksv(struct v4l2_subdev *sd)
 
 static void print_avi_infoframe(struct v4l2_subdev *sd)
 {
-	struct i2c_client *client = v4l2_get_subdevdata(sd);
+/*	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct device *dev = &client->dev;
 	union hdmi_infoframe frame;
 	u8 buffer[HDMI_INFOFRAME_SIZE(AVI)];
@@ -463,7 +464,7 @@ static void print_avi_infoframe(struct v4l2_subdev *sd)
 		return;
 	}
 
-	hdmi_infoframe_log(KERN_INFO, dev, &frame);
+	hdmi_infoframe_log(KERN_INFO, dev, &frame);*/
 }
 
 /* --------------- CTRLS --------------- */
@@ -1706,21 +1707,22 @@ static int tc358743_probe_of(struct tc358743_state *state)
 		return PTR_ERR(refclk);
 	}
 
-	ep = of_graph_get_next_endpoint(dev->of_node, NULL);
+	//ep = of_graph_get_next_endpoint(dev->of_node, NULL);
+	ep = v4l2_of_get_next_endpoint(dev->of_node, NULL);
 	if (!ep) {
 		dev_err(dev, "missing endpoint node\n");
 		return -EINVAL;
 	}
 
-	endpoint = v4l2_of_alloc_parse_endpoint(ep);
+	//endpoint = v4l2_of_alloc_parse_endpoint(ep);
 	if (IS_ERR(endpoint)) {
 		dev_err(dev, "failed to parse endpoint\n");
 		return PTR_ERR(endpoint);
 	}
 
 	if (endpoint->bus_type != V4L2_MBUS_CSI2 ||
-	    endpoint->bus.mipi_csi2.num_data_lanes == 0 ||
-	    endpoint->nr_of_link_frequencies == 0) {
+	    endpoint->bus.mipi_csi2.num_data_lanes == 0/* ||
+	    endpoint->nr_of_link_frequencies == 0*/) {
 		dev_err(dev, "missing CSI-2 properties in endpoint\n");
 		goto free_endpoint;
 	}
@@ -1754,7 +1756,7 @@ static int tc358743_probe_of(struct tc358743_state *state)
 	 * The CSI bps per lane must be between 62.5 Mbps and 1 Gbps.
 	 * The default is 594 Mbps for 4-lane 1080p60 or 2-lane 720p60.
 	 */
-	bps_pr_lane = 2 * endpoint->link_frequencies[0];
+	//bps_pr_lane = 2 * endpoint->link_frequencies[0];
 	if (bps_pr_lane < 62500000U || bps_pr_lane > 1000000000U) {
 		dev_err(dev, "unsupported bps per lane: %u bps\n", bps_pr_lane);
 		goto disable_clk;
@@ -1800,7 +1802,7 @@ static int tc358743_probe_of(struct tc358743_state *state)
 disable_clk:
 	clk_disable_unprepare(refclk);
 free_endpoint:
-	v4l2_of_free_endpoint(endpoint);
+	//v4l2_of_free_endpoint(endpoint);
 	return ret;
 }
 #else
@@ -1894,7 +1896,7 @@ static int tc358743_probe(struct i2c_client *client,
 		goto err_hdl;
 
 	sd->dev = &client->dev;
-	err = v4l2_async_register_subdev(sd);
+	//err = v4l2_async_register_subdev(sd);
 	if (err < 0)
 		goto err_hdl;
 
@@ -1951,7 +1953,7 @@ static int tc358743_remove(struct i2c_client *client)
 
 	cancel_delayed_work(&state->delayed_work_enable_hotplug);
 	destroy_workqueue(state->work_queues);
-	v4l2_async_unregister_subdev(sd);
+	//v4l2_async_unregister_subdev(sd);
 	v4l2_device_unregister_subdev(sd);
 	mutex_destroy(&state->confctl_mutex);
 	media_entity_cleanup(&sd->entity);
